@@ -3,6 +3,7 @@ const authRouter = express.Router();
 const { validateSignUp } = require("../utils/validate");
 const bcrypt = require("bcrypt");
 const User = require("../models/user");
+const { sendSuccess, sendError } = require("../utils/response");
 
 authRouter.post("/signup", async (req, res) => {
   try {
@@ -21,10 +22,17 @@ authRouter.post("/signup", async (req, res) => {
       password: passwordHash,
     });
     //   //user.save always return a promise
-    await user.save();
-    res.send("user data saved successfully");
+    const savedUser = await user.save();
+    const token = await savedUser.getJWT();
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 3600000),
+    });
+
+    sendSuccess(res, savedUser, "User signed up successfully");
   } catch (err) {
-    res.status(400).send("Error saving the user:" + err.message);
+    sendError(res, "Error saving the user: " + err.message, 400);
   }
 });
 
@@ -33,22 +41,20 @@ authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
     const user = await User.findOne({ emailId: emailId });
-    if (!user) {
-      throw new Error("Invalid credentials!!");
-    }
-    const isPasswordValid = await user.validatePassword(password);
-    if (isPasswordValid) {
-      const token = user.getJWT();
+    if (!user) return sendError(res, "Invalid credentials", 401);
 
-      res.cookie("token", token, {
-        expires: new Date(Date.now() + 3600000), // cookie will be removed after 8 hours
-      });
-      res.send("Login Successful!!");
-    } else {
-      res.send("Invalid credentials!!");
-    }
+    const isPasswordValid = await user.validatePassword(password);
+    if (!isPasswordValid) return sendError(res, "Invalid credentials", 401);
+
+    const token = await user.getJWT();
+    res.cookie("token", token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 3600000),
+    });
+
+    sendSuccess(res, user, "Login successful");
   } catch (err) {
-    res.status(400).send("Error in login:" + err.message);
+    sendError(res, "Error in login: " + err.message, 500);
   }
 });
 

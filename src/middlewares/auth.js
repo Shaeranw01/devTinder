@@ -11,10 +11,13 @@ const adminAuth = (req, res, next) => {
   } else next();
 };
 const userAuth = async (req, res, next) => {
+  // if (req.method === "OPTIONS") {
+  //   return next(); // 👈 allow preflight
+  // }
   try {
     const { token } = req.cookies;
     if (!token) {
-      throw new Error("invalid token!!");
+      return res.status(401).send("You are not logged in!!!");
     }
     const decodedData = jwt.verify(token, "DevTinder@$&78788");
     const { _id } = decodedData;
