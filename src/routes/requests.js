@@ -4,6 +4,7 @@ const requestRouter = express.Router();
 const { userAuth } = require("../middlewares/auth");
 const ConnectionRequestModel = require("../models/connectionrequest");
 const User = require("../models/user");
+const { sendSuccess, sendError } = require("../utils/response");
 //only loggedin user can send con req
 requestRouter.post(
   "/request/send/:status/:userId",
@@ -20,8 +21,8 @@ requestRouter.post(
       }
 
       const messages = {
-        interested: "Connection request accepted",
-        ignored: "Connection request ignored",
+        interested: "Connection request sent",
+        ignored: "User ignored",
       };
 
       //validating id of the user
@@ -50,13 +51,13 @@ requestRouter.post(
       });
 
       if (existingUserRequest)
-        return sendError(res, "Connection request already exists", 400);
+        return sendError(res, "Connection request already exists", 409);
 
       const data = await connectionRequest.save();
 
       sendSuccess(res, data, `Connection request ${status}`);
     } catch (err) {
-      sendError(res, err.message, 400);
+      sendError(res, err.message, 500);
     }
   }
 );
@@ -68,7 +69,6 @@ requestRouter.post(
     try {
       const loggedInUser = req.user;
       const { status, requestId } = req.params;
-      console.log(req.params);
       const allowedStatus = ["accepted", "rejected"];
       if (!allowedStatus.includes(status)) {
         return sendError(res, "Invalid status type", 400);
@@ -78,7 +78,7 @@ requestRouter.post(
         toUserId: loggedInUser._id,
         status: "interested",
       });
-      console.log(connectionRequest);
+
       if (!connectionRequest)
         return sendError(res, "Connection request not found", 400);
 
