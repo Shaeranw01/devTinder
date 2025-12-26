@@ -5,6 +5,7 @@ const { userAuth } = require("../middlewares/auth");
 const ConnectionRequestModel = require("../models/connectionrequest");
 const User = require("../models/user");
 const { sendSuccess, sendError } = require("../utils/response");
+const { sendEmail } = require("../utils/sendEmail");
 //only loggedin user can send con req
 requestRouter.post(
   "/request/send/:status/:userId",
@@ -36,6 +37,7 @@ requestRouter.post(
         toUserId,
         status,
       });
+
       //I have to also make sure that conn req is only sent to those users who already exist in DB
 
       const toUser = await User.findById(toUserId);
@@ -55,6 +57,11 @@ requestRouter.post(
 
       const data = await connectionRequest.save();
 
+      const emailResponse = await sendEmail.run(
+        "A new Connection req",
+        ` you received connection req from ${req.user.firstName} `
+      );
+      console.log("email res", emailResponse);
       sendSuccess(res, data, `Connection request ${status}`);
     } catch (err) {
       sendError(res, err.message, 500);
