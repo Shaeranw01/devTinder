@@ -5,7 +5,6 @@ const { userAuth } = require("../middlewares/auth");
 const ConnectionRequestModel = require("../models/connectionrequest");
 const User = require("../models/user");
 const { sendSuccess, sendError } = require("../utils/response");
-const { sendEmail } = require("../utils/sendEmail");
 //only loggedin user can send con req
 requestRouter.post(
   "/request/send/:status/:userId",
@@ -56,17 +55,7 @@ requestRouter.post(
         return sendError(res, "Connection request already exists", 409);
 
       const data = await connectionRequest.save();
-      // Send email (v2 AWS SDK)
-      try {
-        const emailResponse = await sendEmail.run(
-          "A new Connection Request",
-          `You received a connection request from ${req.user.firstName}`
-        );
-        console.log("Email sent successfully:", emailResponse.MessageId);
-      } catch (emailErr) {
-        console.error("Error sending email:", emailErr.message || emailErr);
-        // Do not block API response if email fails
-      }
+
       sendSuccess(res, data, `Connection request ${status}`);
     } catch (err) {
       sendError(res, err.message, 500);
