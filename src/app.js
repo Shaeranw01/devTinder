@@ -15,7 +15,7 @@ const profileRouter = require("./routes/profile");
 const requestRouter = require("./routes/requests");
 const userRouter = require("./routes/user");
 require("dotenv").config();
-console.log("key", process.env.AWS_SES_ACCESS_KEY);
+
 app.use(
   cors({
     origin: "http://localhost:5173",
