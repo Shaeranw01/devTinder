@@ -56,12 +56,17 @@ requestRouter.post(
         return sendError(res, "Connection request already exists", 409);
 
       const data = await connectionRequest.save();
-
-      const emailResponse = await sendEmail.run(
-        "A new Connection req",
-        ` you received connection req from ${req.user.firstName} `
-      );
-      console.log("email res", emailResponse);
+      // Send email (v2 AWS SDK)
+      try {
+        const emailResponse = await sendEmail.run(
+          "A new Connection Request",
+          `You received a connection request from ${req.user.firstName}`
+        );
+        console.log("Email sent successfully:", emailResponse.MessageId);
+      } catch (emailErr) {
+        console.error("Error sending email:", emailErr.message || emailErr);
+        // Do not block API response if email fails
+      }
       sendSuccess(res, data, `Connection request ${status}`);
     } catch (err) {
       sendError(res, err.message, 500);

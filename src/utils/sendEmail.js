@@ -1,51 +1,58 @@
-const { SendEmailCommand } = require("@aws-sdk/client-ses");
-const { sesClient } = require("./sesClient.js");
-const createSendEmailCommand = (toAddress, fromAddress, subject, body) => {
-  return new SendEmailCommand({
+const AWS = require("aws-sdk");
+
+// Configure AWS credentials and region
+AWS.config.update({
+  region: "us-east-1",
+  accessKeyId: process.env.AWS_SES_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_SES_SECRET,
+});
+
+// Create SES instance
+const ses = new AWS.SES({ apiVersion: "2010-12-01" });
+
+/**
+ * Send an email
+ * @param {string} subject - Email subject
+ * @param {string} body - Email body (HTML)
+ */
+const run = async (subject, body) => {
+  const params = {
+    Source: "sharan@devtinders.ca", // verified sender
     Destination: {
+      ToAddresses: ["sharan.w01@gmail.com"], // recipient
       CcAddresses: [],
-      ToAddresses: [toAddress],
     },
     Message: {
+      Subject: {
+        Data: subject,
+        Charset: "UTF-8",
+      },
       Body: {
         Html: {
-          Charset: "UTF-8",
           Data: `<h1>${body}</h1>`,
+          Charset: "UTF-8",
         },
         Text: {
+          Data: body,
           Charset: "UTF-8",
-          Data: "this is text format",
         },
       },
-      Subject: {
-        Charset: "UTF-8",
-        Data: subject,
-      },
     },
-    Source: fromAddress,
     ReplyToAddresses: [],
-  });
-};
-
-const run = async (subject, body) => {
-  const sendEmailCommand = createSendEmailCommand(
-    "sharan.w01@gmail.com",
-    "sharan@devtinders.ca",
-    subject,
-    body
-  );
+  };
 
   try {
-    return await sesClient.send(sendEmailCommand);
-  } catch (caught) {
-    if (caught instanceof Error && caught.name === "MessageRejected") {
-      /** @type { import('@aws-sdk/client-ses').MessageRejected} */
-      const messageRejectedError = caught;
-      return messageRejectedError;
+    const result = await ses.sendEmail(params).promise();
+    console.log("Email sent:", result.MessageId);
+    return result;
+  } catch (err) {
+    if (err.code === "MessageRejected") {
+      console.error("MessageRejected:", err.message);
+      return err;
     }
-    throw caught;
+    console.error("SES Error:", err);
+    throw err;
   }
 };
 
-// snippet-end:[ses.JavaScript.email.sendEmailV3]
 module.exports = { run };
