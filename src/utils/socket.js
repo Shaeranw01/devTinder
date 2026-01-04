@@ -49,7 +49,9 @@ const initializeSocket = (server) => {
           //save msg to database
 
           await chat.save();
+          const savedMessage = chat.messages[chat.messages.length - 1];
           io.to(roomId).emit("messageReceived", {
+            _id: savedMessage._id,
             firstName,
             text,
             senderId: userId,
